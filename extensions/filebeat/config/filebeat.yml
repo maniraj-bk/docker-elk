@@ -1,54 +1,25 @@
-## Filebeat configuration
-## https://github.com/elastic/beats/blob/main/deploy/docker/filebeat.docker.yml
-#
+filebeat.inputs:
+- type: log
+  enabled: false  # Inputs are disabled because the MySQL module handles log collection
 
-name: filebeat
-
-filebeat.config:
-  modules:
-    path: ${path.config}/modules.d/*.yml
-    reload.enabled: false
-
-filebeat.autodiscover:
-  providers:
-    # The Docker autodiscover provider automatically retrieves logs from Docker
-    # containers as they start and stop.
-    - type: docker
-      hints.enabled: true
-      hints.default_config:
-        type: container
-        paths:
-          - /var/lib/docker/containers/${data.container.id}/*-json.log
-      templates:
-        - condition:
-            contains:
-              docker.container.image: elasticsearch
-          config:
-            - module: elasticsearch
-              server:
-                input:
-                  type: container
-                  paths:
-                    - /var/lib/docker/containers/${data.container.id}/*-json.log
-
+# Modules configuration
+filebeat.config.modules:
+  path: /usr/share/filebeat/modules.d/*.yml
+  reload.enabled: true
 processors:
+  - add_host_metadata: ~
   - add_cloud_metadata: ~
 
-monitoring:
-  enabled: true
-  elasticsearch:
-    username: beats_system
-    password: ${BEATS_SYSTEM_PASSWORD}
 
 output.elasticsearch:
   hosts: [ http://elasticsearch:9200 ]
   username: filebeat_internal
   password: ${FILEBEAT_INTERNAL_PASSWORD}
 
-## HTTP endpoint for health checking
-## https://www.elastic.co/guide/en/beats/filebeat/current/http-endpoint.html
-#
+setup.kibana:
+  host: "kibana" 
+  username: "elastic"  
+  password: "${KIBANA_SYSTEM_PASSWORD}"
+  ssl.verification_mode: none
 
-http:
-  enabled: true
-  host: 0.0.0.0
+setup.dashboards.enabled: true
